@@ -1,6 +1,8 @@
 const express = require('express');
 const connect = require('./database/connect');
-const Question = require('./models/Question')
+const Question = require('./models/Question');
+const {routes} = require('./routes/routes');
+const middlewares = require('./middlewares/midlewares')
 const PORT = 5000;
 
 start();
@@ -8,11 +10,14 @@ start();
 async function start()
 {
     const app = express();
+    middlewares(app);
     await connect();
+    app.use(express.json());
+    routes(app);
 
     app.listen(PORT, () => 
     {
-        console.log(`Application started at http://localhots:${PORT}`)
+        console.log(`Application started at http://localhost:${PORT}`)
     });
 }
 
