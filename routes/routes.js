@@ -1,80 +1,87 @@
-const {Question} = require('../models/Question');
+const Player = require('../models/Player');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const authservice = require('../services/authservice');
+const PLAYER_SECRET = 'player';
 
 function routes(app)
 {
     
-    app.post('/register', async (req, res) =>
+    app.post('/registerPlayer', async (req, res) =>
     {
         console.log(req.body);
-        //res.setHeader('Access-Control-Allow-Origin', '*');
-        res.json({foo: 'bar'});
-        /*
         let invalid = false;
-        let username = req.body.username;
-        if (username.length < 1) invalid = true;
+        let playername = req.body.playername;
+        if (playername.length < 1) invalid = true;
         let password = req.body.password;
         if (password.length < 3) invalid = true;
-        let userexists = false;
-        let user = await getUserByUsername(username);
-        if (user) userexists = true;
+        let playerexists = false;
+        let player = await getPlayerByPlayername(playername);
+        if (player) playerexists = true;
         if (invalid)
         {
-            
+            res.json({invalid: true});
         }
-        else if (userexists)
+        else if (playerexists)
         {
-
+            res.json({player: true});
         }
         else
         {
             const hashedPassword = await bcrypt.hash(password, 10);
-            const user = await createUser(username, email, hashedPassword);
-            const token = generateToken(user);
-            res.cookie(COOKIE_NAME, token);
-            let context = {};
-            context.user = username;
-            
-            res.render('/', context);
-        }*/
+            const player = await createPlayer(playername, hashedPassword);
+            const token = generateToken({name: playername, _id: player._id}, PLAYER_SECRET);
+            player.token = token;
+            player.rank = 0;
+            player.gamesPlayed = [];
+            player.gamePlayingNow = null;
+            await player.save();
+            res.json(player);
+        }
     });
 }
 
-async function getUserByUsername(username)
+async function getPlayerByPlayername(playername)
 {
-    const pattern = new RegExp(`^${username}$`, 'i');
-    const user = await User.findOne({username: {$regex: pattern}});
-    return user;
+    const pattern = new RegExp(`^${playername}$`, 'i');
+    const player = await Player.findOne({playername: {$regex: pattern}});
+    return player;
 }
 
-async function getUserByEmail(email)
+async function createPlayer(playername, hashedPassword)
 {
-    const pattern = new RegExp(`^${email}$`, 'i');
-    const user = await User.findOne({email: {$regex: pattern}});
-    return user;
-}
-
-async function createUser(username, email, hashedPassword)
-{
-    const user = new User({
-        username,
-        email,
-        hashedPassword
+    const player = new Player({
+        playername,
+        hashedPassword,
     });
-    await user.save();
-    return user;
+    await player.save();
+    return player;
 }
 
-function generateToken(userData)
+function generateToken(playerData)
 {
     return jwt.sign({
-        _id: userData._id,
-        username: userData.username,
-        email: userData.email,
+        _id: playerData._id,
+        playername: playerData.playername,
     },
-    TOKEN_SECRET);
+    PLAYER_SECRET);
+}
+
+function parseToken(token)
+{
+    if (token)
+    {
+        try
+        {
+            const playerData = jwt.verify(token, PLAYER_SECRET);
+            req.player = playerData;
+            res.locals.player = playerData;
+        }
+        catch(err)
+        {
+            return false;
+        }
+    }
+    return true;
 }
 
 module.exports =

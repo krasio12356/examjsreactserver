@@ -1,6 +1,5 @@
 const express = require('express');
 const connect = require('./database/connect');
-const Question = require('./models/Question');
 const {routes} = require('./routes/routes');
 const middlewares = require('./middlewares/midlewares')
 const PORT = 5000;
