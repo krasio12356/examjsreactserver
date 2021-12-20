@@ -216,6 +216,30 @@ function routes(app)
         }
         else res.json('');
     });
+
+    app.post('/currentGame', async (req, res) =>
+    {
+        console.log(req.body);
+        let player = await getPlayerByToken(req.body.authorization);
+        if (player)
+        {
+            let game = await getGameById(req.body.id);
+            let obj = {};
+            let blackplayer = await getPlayerById(game.blacks);
+            let whiteplayer = await getPlayerById(game.whites);
+            obj.whites = whiteplayer.playername;
+            obj.blacks = blackplayer.playername;
+            obj.notation = game.notation;
+            res.json(obj);
+        }
+        else res.json('');
+    });
+}
+
+async function getGameById(id)
+{
+    let game = await Game.findOne({_id: id});
+    return game;
 }
 
 async function getCurrentGamesByWhitesId(id)
