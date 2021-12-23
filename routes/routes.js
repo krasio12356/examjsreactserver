@@ -234,6 +234,36 @@ function routes(app)
         }
         else res.json('');
     });
+
+    app.post('/playMove', async (req, res) =>
+    {
+        console.log(req.body);
+        let player = await getPlayerByToken(req.body.authorization);
+        let game = await getGameById(req.body.id);
+        if (player._id.toString() === game.whites.toString() || player._id.toString() === game.blacks.toString())
+        {
+            game.notation = req.body.notation;
+            await game.save();
+            res.json({notation: game.notation});
+        }
+        else res.json({notation: 'not updated'});
+    });
+
+    app.post('/waitEnemy', async (req, res) =>
+    {
+        console.log(req.body);
+        let player = await getPlayerByToken(req.body.authorization);
+        let game = await getGameById(req.body.id);
+        if (player._id.toString() === game.whites.toString() || player._id.toString() === game.blacks.toString())
+        {
+            if (game.notation !== req.body.notation)
+            {
+                res.json({notation: game.notation});
+            }
+        }
+        res.json({notation: 'not updated'});
+    });
+
 }
 
 async function getGameById(id)
