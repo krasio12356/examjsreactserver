@@ -235,35 +235,45 @@ function routes(app)
         else res.json('');
     });
 
-    app.post('/playMove', async (req, res) =>
-    {
-        console.log(req.body);
-        let player = await getPlayerByToken(req.body.authorization);
-        let game = await getGameById(req.body.id);
-        if (player._id.toString() === game.whites.toString() || player._id.toString() === game.blacks.toString())
-        {
-            game.notation = req.body.notation;
-            await game.save();
-            res.json({notation: game.notation});
-        }
-        else res.json({notation: 'not updated'});
-    });
-
     app.post('/waitEnemy', async (req, res) =>
     {
         console.log(req.body);
         let player = await getPlayerByToken(req.body.authorization);
         let game = await getGameById(req.body.id);
-        if (player._id.toString() === game.whites.toString() || player._id.toString() === game.blacks.toString())
+        let whitePlayer = await getPlayerById(game.whites);
+        let blackPlayer = await getPlayerById(game.blacks);
+        if (player && (player._id.toString() === game.whites.toString() || player._id.toString() === game.blacks.toString()))
         {
             if (game.notation !== req.body.notation)
             {
-                res.json({notation: game.notation});
+                if (notationLength(game.notation) < notationLength(req.body.notation))
+                {
+                    game.notation = req.body.notation;
+                    await game.save();
+                }
+                game = await getGameById(req.body.id);
+                res.json({notation: game.notation, whites: whitePlayer.playername, blacks: blackPlayer.playername});
+            }
+            else
+            {
+                res.json({notation: 'do nothing', whites: whitePlayer.playername, blacks: blackPlayer.playername});
             }
         }
-        res.json({notation: 'not updated'});
+        else
+        {
+            res.json({notation: 'do nothing', whites: whitePlayer.playername, blacks: blackPlayer.playername});
+        }
     });
+}
 
+function notationLength(notation)
+{
+    if (notation === '/') return 0;
+    if (notation.endsWith('/')) return 1;
+    let note = notation.split('/');
+    let notew = note[0].split(', ');
+    let noteb = note[1].split(', ');
+    return note[0].length + note[1].length;
 }
 
 async function getGameById(id)
