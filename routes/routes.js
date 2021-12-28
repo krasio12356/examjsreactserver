@@ -235,6 +235,53 @@ function routes(app)
         else res.json('');
     });
 
+    app.post('/win', async (req, res) =>
+    {
+        console.log(req.body);
+        let player = await getPlayerByToken(req.body.authorization);
+        if (player)
+        {
+            let game = await getGameById(req.body._id);
+            if (game.isCurrent)
+            {
+                let winner = await getPlayerByPlayername(req.body.winner);
+                let looser = await getPlayerByPlayername(req.body.looser);
+                if (game.isCurrent) 
+                game.isCurrent = false;
+                game.winner = winner._id;
+                game.looser = looser._id;
+                game.notation = req.body.notation;
+                await game.save();
+                winner.consecutiveWins++;
+                looser.consecutiveWins = 0;
+                if (winner.consecutiveWins >= 3)
+                {
+                    winner.consecutiveWins = 0;
+                    winner.rank++;
+                }
+                await winner.save();
+                await looser.save();
+            }
+            res.json({condition: 'ok'});
+        }
+        else res.json({condition: 'not ok'});
+    });
+
+    app.post('/draw', async (req, res) =>
+    {
+        console.log(req.body);
+        let player = await getPlayerByToken(req.body.authorization);
+        if (player)
+        {
+            let game = await getGameById(req.body._id);
+            game.isCurrent = false;
+            game.notation = req.body.notation;
+            await game.save();
+            res.json({condition: 'ok'});
+        }
+        else res.json({condition: 'not ok'});
+    });
+
     app.post('/waitEnemy', async (req, res) =>
     {
         console.log(req.body);
@@ -273,7 +320,7 @@ function notationLength(notation)
     let note = notation.split('/');
     let notew = note[0].split(', ');
     let noteb = note[1].split(', ');
-    return note[0].length + note[1].length;
+    return notew.length + noteb.length;
 }
 
 async function getGameById(id)
@@ -331,6 +378,8 @@ async function createPlayer(playername, hashedPassword)
     const player = new Player({
         playername,
         hashedPassword,
+        rank: 0,
+        consecutiveWins: 0
     });
     await player.save();
     return player;
@@ -343,6 +392,8 @@ async function createGame(challenger, enemy)
         blacks: challenger,
         isCurrent: true,
         notation: '/',
+        winner: null,
+        looser: null
     });
     await game.save();
     return game;
